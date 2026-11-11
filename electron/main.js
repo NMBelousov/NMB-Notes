@@ -20,6 +20,7 @@ const widgetsLib = require('./lib/widgets');
 const secrets = require('./lib/secrets');
 const ai = require('./lib/ai');
 const exporter = require('./lib/exporter');
+const updates = require('./lib/updates');
 const { installMenu } = require('./lib/menu');
 
 app.setName('NMB Notes');
@@ -204,6 +205,13 @@ function registerIpc() {
     }
     return false;
   });
+
+  handle('updates:check', () => updates.checkForUpdates());
+  handle('updates:download', (event) => updates.downloadUpdate(event.sender));
+  handle('updates:install', () => updates.installUpdate());
+  handle('updates:token-status', () => secrets.githubStatus());
+  handle('updates:set-token', (_event, token) => secrets.setGithubToken(String(token || '')));
+  handle('updates:clear-token', () => secrets.clearGithubToken());
 
   handle('export:markdown', (_event, payload) => exporter.exportMarkdown(payload || {}));
   handle('export:pdf', (_event, payload) => {

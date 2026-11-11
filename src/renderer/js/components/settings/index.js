@@ -6,6 +6,7 @@ import { renderAiSettings } from './ai.js';
 import { renderWidgetsSettings } from './widgets.js';
 import { renderEditorSettings } from './editor.js';
 import { renderDataSettings } from './data.js';
+import { renderUpdates } from './updates.js';
 import { renderAbout } from './about.js';
 import { openWidgetStudio, openWidgetGuide } from './widgetStudio.js';
 import { reloadWidgets } from '../../widgets/registry.js';
@@ -18,6 +19,7 @@ const TABS = [
   { id: 'widgets', label: 'Виджеты', icon: 'widgets', render: renderWidgetsSettings },
   { id: 'editor', label: 'Редактор', icon: 'edit', render: renderEditorSettings },
   { id: 'data', label: 'Данные', icon: 'database', render: renderDataSettings },
+  { id: 'updates', label: 'Обновления', icon: 'download', render: renderUpdates },
   { id: 'about', label: 'О приложении', icon: 'info', render: renderAbout },
 ];
 

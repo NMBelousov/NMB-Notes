@@ -1,7 +1,7 @@
 {
   "name": "nmb-notes",
   "productName": "NMB Notes",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Локальный Markdown-редактор с четырьмя колонками, AI-помощником DeepSeek, виджетами и темами Obsidian",
   "main": "electron/main.js",
   "author": "NMB Notes",

@@ -1,4 +1,4 @@
-import { h, clear, formatDate } from '../dom.js';
+import { h, clear, formatDate, modKey } from '../dom.js';
 import { icon } from '../icons.js';
 import { confirmDialog } from '../modal.js';
 import { notifyError, toast } from '../toast.js';
@@ -66,7 +66,7 @@ export function mountNoteList(root) {
           'button',
           {
             class: 'btn icon-only',
-            title: 'Новая заметка (Ctrl/Cmd+N)',
+            title: `Новая заметка (${modKey()}+N)`,
             'aria-label': 'Новая заметка',
             onClick: async () => {
               try {

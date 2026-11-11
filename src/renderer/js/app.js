@@ -1,4 +1,4 @@
-import { $, h } from './dom.js';
+import { $, h, modKey } from './dom.js';
 import { toast, notifyError } from './toast.js';
 import { openModal, promptDialog } from './modal.js';
 import { closeDropdown, isDropdownOpen } from './components/dropdown.js';
@@ -73,19 +73,21 @@ function focusSearch() {
 }
 
 function showShortcuts() {
+  const mod = modKey();
   const rows = [
-    ['Новая заметка', 'Ctrl/Cmd + N'],
-    ['Новая папка', 'Ctrl/Cmd + Shift + N'],
-    ['Поиск заметок', 'Ctrl/Cmd + K'],
-    ['Найти (фокус в поиск)', 'Ctrl/Cmd + F'],
-    ['Сохранить сейчас', 'Ctrl/Cmd + S'],
-    ['AI-панель', 'Ctrl/Cmd + E'],
-    ['Настройки', 'Ctrl/Cmd + ,'],
-    ['Предпросмотр', 'Ctrl/Cmd + Shift + Y'],
-    ['Виджеты', 'Ctrl/Cmd + Shift + W'],
-    ['Дублировать заметку', 'Ctrl/Cmd + Shift + D'],
-    ['Экспорт в PDF', 'Ctrl/Cmd + Shift + P'],
-    ['Импорт Markdown', 'Ctrl/Cmd + O'],
+    ['Новая заметка', `${mod} + N`],
+    ['Новая папка', `${mod} + Shift + N`],
+    ['Поиск заметок', `${mod} + K`],
+    ['Найти (фокус в поиск)', `${mod} + F`],
+    ['Сохранить сейчас', `${mod} + S`],
+    ['AI-панель', `${mod} + E`],
+    ['Настройки', `${mod} + ,`],
+    ['Предпросмотр', `${mod} + Shift + Y`],
+    ['Виджеты', `${mod} + Shift + W`],
+    ['Дублировать заметку', `${mod} + Shift + D`],
+    ['Экспорт в PDF', `${mod} + Shift + P`],
+    ['Импорт Markdown', `${mod} + O`],
+    ['Все заметки / Избранное', `${mod} + 1 / ${mod} + 2`],
     ['Slash-меню', '/ в начале строки'],
     ['Выйти из панели', 'Esc'],
   ];
@@ -162,91 +164,93 @@ function setupSplitter() {
   });
 }
 
-function setupMenuActions() {
-  api.app.onMenuAction(async ({ action, payload }) => {
-    try {
-      switch (action) {
-        case 'new-note': {
-          await createNote();
-          emit('editor:focus');
-          break;
-        }
-        case 'new-folder':
-          await newFolderFlow();
-          break;
-        case 'import-markdown': {
-          const result = await api.vault.importMarkdown();
-          if (result.imported) {
-            applyVault(result.vault);
-            if (state.view.type === 'favorites' || state.view.type === 'trash' || state.search) {
-              setView({ type: 'all', folderId: null });
-            }
-            toast(`Импортировано файлов: ${result.imported}`);
-          }
-          break;
-        }
-        case 'export-markdown': {
-          const path = await exportNoteMarkdown();
-          if (path) toast('Markdown сохранён');
-          break;
-        }
-        case 'export-pdf':
-          await exportPdfCurrent();
-          break;
-        case 'settings':
-          emit('ui:open-settings', payload || { tab: 'appearance' });
-          break;
-        case 'search':
-          focusSearch();
-          break;
-        case 'view-all':
-          setView({ type: 'all', folderId: null });
-          break;
-        case 'view-favorites':
-          setView({ type: 'favorites' });
-          break;
-        case 'tab-preview':
-          emit('ui:show-right-tab', { tab: 'preview' });
-          break;
-        case 'tab-widgets':
-          emit('ui:show-right-tab', { tab: 'widgets' });
-          break;
-        case 'toggle-ai':
-          emit('ai:toggle');
-          break;
-        case 'docs-widgets':
-          emit('ui:open-widget-guide');
-          break;
-        case 'shortcuts':
-          showShortcuts();
-          break;
-        default:
-          break;
+async function runCommand(action, payload = null) {
+  try {
+    switch (action) {
+      case 'new-note': {
+        await createNote();
+        emit('editor:focus');
+        break;
       }
-    } catch (error) {
-      notifyError(error);
+      case 'new-folder':
+        await newFolderFlow();
+        break;
+      case 'import-markdown': {
+        const result = await api.vault.importMarkdown();
+        if (result.imported) {
+          applyVault(result.vault);
+          if (state.view.type === 'favorites' || state.view.type === 'trash' || state.search) {
+            setView({ type: 'all', folderId: null });
+          }
+          toast(`Импортировано файлов: ${result.imported}`);
+        }
+        break;
+      }
+      case 'export-markdown': {
+        const path = await exportNoteMarkdown();
+        if (path) toast('Markdown сохранён');
+        break;
+      }
+      case 'export-pdf':
+        await exportPdfCurrent();
+        break;
+      case 'duplicate-note': {
+        const note = activeNote();
+        if (note) {
+          await duplicateNote(note.id);
+          toast('Заметка продублирована');
+        }
+        break;
+      }
+      case 'settings':
+        emit('ui:open-settings', payload || { tab: 'appearance' });
+        break;
+      case 'search':
+        focusSearch();
+        break;
+      case 'view-all':
+        setView({ type: 'all', folderId: null });
+        break;
+      case 'view-favorites':
+        setView({ type: 'favorites' });
+        break;
+      case 'tab-preview':
+        emit('ui:show-right-tab', { tab: 'preview' });
+        break;
+      case 'tab-widgets':
+        emit('ui:show-right-tab', { tab: 'widgets' });
+        break;
+      case 'toggle-ai':
+        emit('ai:toggle');
+        break;
+      case 'check-updates':
+        emit('ui:open-settings', { tab: 'updates' });
+        break;
+      case 'docs-widgets':
+        emit('ui:open-widget-guide');
+        break;
+      case 'shortcuts':
+        showShortcuts();
+        break;
+      default:
+        break;
     }
+  } catch (error) {
+    notifyError(error);
+  }
+}
+
+function setupMenuActions() {
+  api.app.onMenuAction(({ action, payload }) => {
+    runCommand(action, payload);
   });
 }
 
 function setupGlobalKeys() {
+  const isMac = state.info?.platform === 'darwin';
   document.addEventListener('keydown', (event) => {
-    const mod = event.metaKey || event.ctrlKey;
-    if (mod && event.shiftKey && event.key.toLowerCase() === 'd') {
-      event.preventDefault();
-      const note = activeNote();
-      if (note) {
-        duplicateNote(note.id)
-          .then(() => toast('Заметка продублирована'))
-          .catch(notifyError);
-      }
-      return;
-    }
-    if (mod && !event.shiftKey && event.key.toLowerCase() === 'f') {
-      event.preventDefault();
-      focusSearch();
-      return;
-    }
+    const key = event.key.toLowerCase();
+
     if (event.key === 'Escape') {
       if (document.querySelector('.modal-overlay')) return;
       if (isDropdownOpen()) {
@@ -266,8 +270,87 @@ function setupGlobalKeys() {
       document.getElementById('sidebar')?.classList.remove('open');
       document.getElementById('note-list')?.classList.remove('open');
       document.getElementById('right-panel')?.classList.remove('open');
+      return;
+    }
+
+    if (event.key === 'F1') {
+      event.preventDefault();
+      showShortcuts();
+      return;
+    }
+
+    if (event.repeat) return;
+    const mod = isMac ? event.metaKey : event.ctrlKey;
+    if (!mod || event.altKey || (isMac && event.ctrlKey)) return;
+
+    if (event.shiftKey && key === 'd') {
+      event.preventDefault();
+      runCommand('duplicate-note');
+      return;
+    }
+
+    if (!event.shiftKey && key === 'f') {
+      event.preventDefault();
+      focusSearch();
+      return;
+    }
+
+    // На macOS основные команды уже обслуживаются нативным меню.
+    if (isMac) return;
+
+    const shortcuts = {
+      n: 'new-note',
+      k: 'search',
+      o: 'import-markdown',
+      e: 'toggle-ai',
+      ',': 'settings',
+      '1': 'view-all',
+      '2': 'view-favorites',
+    };
+    if (!event.shiftKey && shortcuts[key]) {
+      event.preventDefault();
+      runCommand(shortcuts[key]);
+      return;
+    }
+    if (event.shiftKey) {
+      const shiftShortcuts = {
+        n: 'new-folder',
+        e: 'export-markdown',
+        p: 'export-pdf',
+        y: 'tab-preview',
+        w: 'tab-widgets',
+      };
+      if (shiftShortcuts[key]) {
+        event.preventDefault();
+        runCommand(shiftShortcuts[key]);
+      }
     }
   });
+}
+
+function setupUpdateCheck() {
+  if (state.settings?.updates?.checkOnStartup === false) return;
+  setTimeout(async () => {
+    try {
+      const info = await api.updates.check();
+      state.updateInfo = info;
+      state.updateError = null;
+      emit('updates:checked', info);
+      if (info.available) {
+        emit('updates:available', info);
+        toast(
+          `Доступно обновление NMB Notes ${info.latestVersion}. Настройки → Обновления`,
+          'warn',
+          7000
+        );
+      }
+    } catch (error) {
+      state.updateInfo = null;
+      state.updateError = error?.message || String(error);
+      emit('updates:checked', { error: state.updateError });
+      console.info('[updates]', state.updateError);
+    }
+  }, 3000);
 }
 
 function setupEvents() {
@@ -303,6 +386,7 @@ function setupEvents() {
   setupMenuActions();
   setupGlobalKeys();
   setupSplitter();
+  setupUpdateCheck();
 
   api.app.onBeforeClose(async () => {
     try {

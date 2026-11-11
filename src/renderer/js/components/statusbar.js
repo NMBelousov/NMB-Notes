@@ -56,6 +56,21 @@ export function mountStatusbar(root) {
     left.append(...leftItems);
 
     const themeName = themeLabel();
+    if (state.updateInfo?.available) {
+      right.append(
+        h(
+          'button',
+          {
+            class: 'statusbar-item',
+            style: { color: 'var(--accent)' },
+            title: 'Доступно обновление — открыть настройки',
+            onClick: () => emit('ui:open-settings', { tab: 'updates' }),
+          },
+          icon('download'),
+          h('span', { text: `Обновление ${state.updateInfo.latestVersion}` })
+        )
+      );
+    }
     right.append(
       h(
         'button',
@@ -108,6 +123,8 @@ export function mountStatusbar(root) {
   on('settings:changed', render);
   on('ai:key-changed', render);
   on('theme:applied', render);
+  on('updates:checked', render);
+  on('updates:available', render);
 }
 
 function themeLabel() {

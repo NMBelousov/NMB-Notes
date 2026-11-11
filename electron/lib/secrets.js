@@ -1,12 +1,15 @@
 'use strict';
 
 const fs = require('node:fs');
+const path = require('node:path');
 const crypto = require('node:crypto');
 const { safeStorage } = require('electron');
 const { getPaths } = require('./paths');
 const { readJson, writeJsonAtomic } = require('./util');
 
 const AAD = Buffer.from('nmb-notes:secrets:v1');
+const DEEPSEEK = 'deepseek';
+const GITHUB = 'github';
 
 function safeStorageAvailable() {
   try {
@@ -39,7 +42,7 @@ function getFallbackKey() {
     /* create below */
   }
   const key = crypto.randomBytes(32);
-  fs.mkdirSync(require('node:path').dirname(secretKeyFile), { recursive: true });
+  fs.mkdirSync(path.dirname(secretKeyFile), { recursive: true });
   fs.writeFileSync(secretKeyFile, key.toString('base64'), { mode: 0o600 });
   try {
     fs.chmodSync(secretKeyFile, 0o600);
@@ -82,8 +85,7 @@ function decrypt(envelope) {
     if (!safeStorageAvailable()) {
       throw new Error('Системное хранилище ключей недоступно');
     }
-    const buf = Buffer.from(envelope.data, 'base64');
-    return safeStorage.decryptString(buf);
+    return safeStorage.decryptString(Buffer.from(envelope.data, 'base64'));
   }
   if (envelope.method === 'aes-256-gcm') {
     const key = getFallbackKey();
@@ -107,52 +109,114 @@ function readEnvelope() {
   return readJson(secretsFile, null);
 }
 
-/** Returns the API key or null. Never expose the result to the renderer. */
-function getApiKey() {
+/** Хранилище секретов: { deepseek: "...", github: "..." } в одном шифре. */
+function readPayload() {
   const envelope = readEnvelope();
-  if (!envelope) return null;
+  if (!envelope) return {};
   try {
-    const value = decrypt(envelope).trim();
-    return value || null;
+    const raw = decrypt(envelope).trim();
+    if (!raw) return {};
+    if (raw.startsWith('{')) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed;
+      }
+      return {};
+    }
+    // Совместимость со старым форматом: один ключ DeepSeek.
+    return { [DEEPSEEK]: raw };
   } catch (error) {
-    console.warn('[secrets] Не удалось расшифровать ключ:', error.message);
-    return null;
+    console.warn('[secrets] Не удалось расшифровать секреты:', error.message);
+    return {};
   }
 }
 
-function setApiKey(rawKey) {
-  const key = String(rawKey || '').trim();
-  if (key.length < 8) throw new Error('Ключ слишком короткий');
-  if (key.length > 500) throw new Error('Ключ слишком длинный');
-  if (/[\u0000-\u001f\s]/.test(key)) throw new Error('Ключ содержит недопустимые символы');
-  const { secretsFile } = getPaths();
-  const envelope = encrypt(key);
-  writeJsonAtomic(secretsFile, envelope);
+function writePayload(payload) {
+  const { secretsFile, secretKeyFile } = getPaths();
+  const data = {};
+  for (const [key, value] of Object.entries(payload || {})) {
+    if (typeof value === 'string' && value) data[key] = value;
+  }
+  if (Object.keys(data).length === 0) {
+    fs.rmSync(secretsFile, { force: true });
+    fs.rmSync(secretKeyFile, { force: true });
+    return;
+  }
+  writeJsonAtomic(secretsFile, encrypt(JSON.stringify(data)));
   try {
     fs.chmodSync(secretsFile, 0o600);
   } catch {
     /* best effort */
   }
-  return keyStatus();
 }
 
-function clearApiKey() {
-  const { secretsFile, secretKeyFile } = getPaths();
-  fs.rmSync(secretsFile, { force: true });
-  fs.rmSync(secretKeyFile, { force: true });
-  return keyStatus();
+function cleanSecret(rawValue, label) {
+  const value = String(rawValue || '').trim();
+  if (value.length < 8) throw new Error(`${label} слишком короткий`);
+  if (value.length > 500) throw new Error(`${label} слишком длинный`);
+  if (/[\u0000-\u001f\s]/.test(value)) {
+    throw new Error(`${label} содержит недопустимые символы`);
+  }
+  return value;
 }
 
-function keyStatus() {
+function statusFor(name) {
   const envelope = readEnvelope();
-  const key = getApiKey();
+  const value = readPayload()[name] || '';
   return {
-    set: Boolean(key),
-    hint: key ? `••••${key.slice(-4)}` : '',
+    set: Boolean(value),
+    hint: value ? `••••${value.slice(-4)}` : '',
     method: envelope?.method || 'none',
     backend: envelope?.backend || (safeStorageAvailable() ? storageBackend() : 'aes-256-gcm'),
     cipher: envelope?.method === 'safeStorage' ? 'safeStorage' : envelope ? 'AES-256-GCM' : '—',
   };
+}
+
+function setSecret(name, rawValue, label) {
+  const value = cleanSecret(rawValue, label);
+  const payload = readPayload();
+  payload[name] = value;
+  writePayload(payload);
+  return statusFor(name);
+}
+
+function clearSecret(name) {
+  const payload = readPayload();
+  delete payload[name];
+  writePayload(payload);
+  return statusFor(name);
+}
+
+function getApiKey() {
+  return readPayload()[DEEPSEEK] || null;
+}
+
+function setApiKey(rawKey) {
+  return setSecret(DEEPSEEK, rawKey, 'Ключ');
+}
+
+function clearApiKey() {
+  return clearSecret(DEEPSEEK);
+}
+
+function keyStatus() {
+  return statusFor(DEEPSEEK);
+}
+
+function getGithubToken() {
+  return readPayload()[GITHUB] || null;
+}
+
+function setGithubToken(rawToken) {
+  return setSecret(GITHUB, rawToken, 'GitHub token');
+}
+
+function clearGithubToken() {
+  return clearSecret(GITHUB);
+}
+
+function githubStatus() {
+  return statusFor(GITHUB);
 }
 
 module.exports = {
@@ -160,6 +224,10 @@ module.exports = {
   setApiKey,
   clearApiKey,
   keyStatus,
+  getGithubToken,
+  setGithubToken,
+  clearGithubToken,
+  githubStatus,
   safeStorageAvailable,
   storageBackend,
 };

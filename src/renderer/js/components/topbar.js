@@ -270,7 +270,7 @@ export function mountTopbar(root) {
     'button',
     {
       class: 'btn icon-only',
-      title: 'AI-помощник (Ctrl/Cmd+E)',
+      title: `AI-помощник (${modKey()}+E)`,
       'aria-label': 'AI-помощник',
       onClick: () => emit('ai:toggle'),
     },
@@ -292,7 +292,7 @@ export function mountTopbar(root) {
     'button',
     {
       class: 'btn icon-only',
-      title: 'Настройки (Ctrl/Cmd+,)',
+      title: `Настройки (${modKey()}+,)`,
       'aria-label': 'Настройки',
       onClick: () => emit('ui:open-settings', { tab: 'appearance' }),
     },

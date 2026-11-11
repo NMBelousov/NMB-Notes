@@ -144,6 +144,10 @@ function buildMenu(win, { isDev = false, config = {} } = {}) {
       label: 'Помощь',
       submenu: [
         {
+          label: 'Проверить обновления…',
+          click: () => send(win, 'check-updates'),
+        },
+        {
           label: 'Руководство по виджетам',
           click: () => send(win, 'docs-widgets'),
         },
@@ -182,6 +186,13 @@ function buildMenu(win, { isDev = false, config = {} } = {}) {
 }
 
 function installMenu(win, options) {
+  // На Windows/Linux нативное меню убираем: Alt/Alt+Shift при смене
+  // раскладки не должны открывать меню «Файл». Все команды доступны
+  // через горячие клавиши renderer-процесса.
+  if (process.platform !== 'darwin') {
+    Menu.setApplicationMenu(null);
+    return null;
+  }
   const menu = buildMenu(win, options);
   Menu.setApplicationMenu(menu);
   return menu;

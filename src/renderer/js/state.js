@@ -13,6 +13,9 @@ export const state = {
   userWidgets: [],
   widgetErrors: [],
   aiKeyStatus: { set: false, hint: '', method: 'none', backend: '—', cipher: '—' },
+  githubStatus: { set: false, hint: '', method: 'none', backend: '—', cipher: '—' },
+  updateInfo: null,
+  updateError: null,
   view: { type: 'all', folderId: null },
   search: '',
   saveState: 'saved',
@@ -136,19 +139,22 @@ export function applyVault(vault, { silent = false } = {}) {
 }
 
 export async function initState() {
-  const [vault, settings, info, userThemes, aiKeyStatus] = await Promise.all([
-    api.vault.get(),
-    api.settings.get(),
-    api.app.info(),
-    api.themes.list(),
-    api.ai.keyStatus(),
-  ]);
+  const [vault, settings, info, userThemes, aiKeyStatus, githubStatus] =
+    await Promise.all([
+      api.vault.get(),
+      api.settings.get(),
+      api.app.info(),
+      api.themes.list(),
+      api.ai.keyStatus(),
+      api.updates.tokenStatus(),
+    ]);
   state.vault = vault;
   state.settings = settings;
   state.info = info;
   state.userThemes = userThemes || [];
   state.themes = [...THEMES, ...state.userThemes];
   state.aiKeyStatus = aiKeyStatus;
+  state.githubStatus = githubStatus;
   state.view = { type: 'all', folderId: null };
   state.rightTab = settings.layout.rightTab === 'widgets' ? 'widgets' : 'preview';
 
@@ -315,6 +321,12 @@ export async function refreshKeyStatus() {
   state.aiKeyStatus = await api.ai.keyStatus();
   emit('ai:key-changed', state.aiKeyStatus);
   return state.aiKeyStatus;
+}
+
+export async function refreshGithubStatus() {
+  state.githubStatus = await api.updates.tokenStatus();
+  emit('updates:token-changed', state.githubStatus);
+  return state.githubStatus;
 }
 
 export function setSearch(query) {

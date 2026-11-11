@@ -34,6 +34,11 @@ NMB Notes читает необязательный JSON-конфиг, как Ob
     },
     "widgets": {
       "enabled": ["stats", "outline", "quick-actions"]
+    },
+    "updates": {
+      "repo": "NMBelousov/NMB---Note-s",
+      "channel": "latest",
+      "checkOnStartup": true
     }
   },
   "security": {
@@ -59,8 +64,9 @@ NMB Notes читает необязательный JSON-конфиг, как Ob
 - `editor.livePreview`, `slashMenu`, `smartLists`, `spellcheck`, `autoSaveMs`
 - `ai.baseUrl`, `model`, `temperature`, `maxTokens`, `includeContext`, `stream`
 - `widgets.enabled`
+- `updates.repo`, `updates.channel`, `updates.apiBase`, `updates.checkOnStartup`
 
-> API-ключ в конфиг не записывается. Он хранится отдельно в зашифрованном `secrets.enc`.
+> API-ключ DeepSeek и GitHub-токен в конфиг не записываются. Они хранятся отдельно в зашифрованном `secrets.enc`.
 
 ### `security.allowExternalLinks`
 

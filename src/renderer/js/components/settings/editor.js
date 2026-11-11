@@ -1,4 +1,4 @@
-import { h } from '../../dom.js';
+import { h, modKey } from '../../dom.js';
 import { toast, notifyError } from '../../toast.js';
 import { state, updateSettings } from '../../state.js';
 import { section, note, toggleRow, rangeRow, actionsRow, button } from './shared.js';
@@ -88,17 +88,21 @@ export function renderEditorSettings({ refresh }) {
       h(
         'div',
         { class: 'shortcut-grid' },
-        ...shortcutRows([
-          ['Новая заметка', 'Ctrl/Cmd + N'],
-          ['Поиск', 'Ctrl/Cmd + K'],
-          ['Сохранить сейчас', 'Ctrl/Cmd + S'],
-          ['AI-панель', 'Ctrl/Cmd + E'],
-          ['Предпросмотр', 'Ctrl/Cmd + Shift + Y'],
-          ['Виджеты', 'Ctrl/Cmd + Shift + W'],
-          ['Настройки', 'Ctrl/Cmd + ,'],
-          ['Дублировать заметку', 'Ctrl/Cmd + Shift + D'],
-          ['Найти в тексте', 'Ctrl/Cmd + F'],
-        ])
+        ...shortcutRows((() => {
+          const mod = modKey();
+          return [
+            ['Новая заметка', `${mod} + N`],
+            ['Поиск', `${mod} + K`],
+            ['Сохранить сейчас', `${mod} + S`],
+            ['AI-панель', `${mod} + E`],
+            ['Предпросмотр', `${mod} + Shift + Y`],
+            ['Виджеты', `${mod} + Shift + W`],
+            ['Настройки', `${mod} + ,`],
+            ['Дублировать заметку', `${mod} + Shift + D`],
+            ['Найти в тексте', `${mod} + F`],
+            ['Все заметки / Избранное', `${mod} + 1 / ${mod} + 2`],
+          ];
+        })())
       )
     )
   );

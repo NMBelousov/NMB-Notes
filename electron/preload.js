@@ -119,6 +119,25 @@ contextBridge.exposeInMainWorld('api', {
       };
     },
   },
+  updates: {
+    check: () => ipcRenderer.invoke('updates:check'),
+    download: () => ipcRenderer.invoke('updates:download'),
+    install: () => ipcRenderer.invoke('updates:install'),
+    tokenStatus: () => ipcRenderer.invoke('updates:token-status'),
+    setToken: (token) => ipcRenderer.invoke('updates:set-token', token),
+    clearToken: () => ipcRenderer.invoke('updates:clear-token'),
+    onProgress: (callback) => {
+      const listener = (_event, payload) => {
+        try {
+          callback(payload);
+        } catch (error) {
+          console.error(error);
+        }
+      };
+      ipcRenderer.on('updates:progress', listener);
+      return () => ipcRenderer.removeListener('updates:progress', listener);
+    },
+  },
   export: {
     markdown: (payload) => ipcRenderer.invoke('export:markdown', payload),
     pdf: (payload) => ipcRenderer.invoke('export:pdf', payload),

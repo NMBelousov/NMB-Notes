@@ -40,13 +40,18 @@ const DEFAULT_SETTINGS = {
   widgets: {
     enabled: ['stats', 'outline', 'quick-actions', 'tags', 'related'],
   },
+  updates: {
+    repo: 'NMBelousov/NMB---Note-s',
+    channel: 'latest',
+    apiBase: 'https://api.github.com',
+    checkOnStartup: true,
+  },
 };
 
 let current = null;
 let writePromise = Promise.resolve();
 
-function normalizeBaseUrl(value) {
-  const fallback = DEFAULT_SETTINGS.ai.baseUrl;
+function normalizeHttpUrl(value, fallback) {
   if (typeof value !== 'string') return fallback;
   const trimmed = value.trim().replace(/\/+$/, '');
   try {
@@ -59,6 +64,17 @@ function normalizeBaseUrl(value) {
   } catch {
     return fallback;
   }
+}
+
+function normalizeBaseUrl(value) {
+  return normalizeHttpUrl(value, DEFAULT_SETTINGS.ai.baseUrl);
+}
+
+function normalizeRepo(value) {
+  const fallback = DEFAULT_SETTINGS.updates.repo;
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim().slice(0, 200);
+  return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(trimmed) ? trimmed : fallback;
 }
 
 function sanitizeWidgetIds(list) {
@@ -81,6 +97,7 @@ function sanitizeSettings(raw) {
   const editor = isPlainObject(merged.editor) ? merged.editor : {};
   const ai = isPlainObject(merged.ai) ? merged.ai : {};
   const widgets = isPlainObject(merged.widgets) ? merged.widgets : {};
+  const updates = isPlainObject(merged.updates) ? merged.updates : {};
 
   return {
     version: 1,
@@ -129,6 +146,15 @@ function sanitizeSettings(raw) {
     },
     widgets: {
       enabled: sanitizeWidgetIds(widgets.enabled),
+    },
+    updates: {
+      repo: normalizeRepo(updates.repo),
+      channel:
+        typeof updates.channel === 'string' && /^[A-Za-z0-9_.-]{1,80}$/.test(updates.channel)
+          ? updates.channel
+          : DEFAULT_SETTINGS.updates.channel,
+      apiBase: normalizeHttpUrl(updates.apiBase, DEFAULT_SETTINGS.updates.apiBase),
+      checkOnStartup: updates.checkOnStartup !== false,
     },
   };
 }
