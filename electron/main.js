@@ -250,6 +250,13 @@ function createWindow() {
     },
   });
 
+  if (process.platform !== 'darwin') {
+    // Убираем нативное меню полностью: Alt/Alt+Shift при смене раскладки
+    // не должны открывать меню «Файл».
+    mainWindow.setMenu(null);
+    mainWindow.setMenuBarVisibility(false);
+  }
+
   const wcId = mainWindow.webContents.id;
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
