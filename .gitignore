@@ -1,0 +1,12 @@
+node_modules/
+release/
+dist/
+out/
+*.log
+.DS_Store
+Thumbs.db
+build/icon.icns
+build/icon.ico
+*.tsbuildinfo
+.env
+.vscode/

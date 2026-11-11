@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="obsidian-dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; media-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none';">
+  <title>NMB Notes</title>
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/layout.css">
+  <link rel="stylesheet" href="styles/components.css">
+  <link rel="stylesheet" href="styles/widgets.css">
+</head>
+<body>
+  <div id="app" class="app">
+    <aside id="sidebar" class="sidebar" aria-label="Навигация"></aside>
+    <section id="note-list" class="note-list" aria-label="Список заметок"></section>
+    <main class="workspace">
+      <header id="note-topbar" class="note-topbar"></header>
+      <div id="workspace-main" class="workspace-main">
+        <section class="editor-pane">
+          <div id="editor-wrap" class="editor-wrap">
+            <textarea id="editor" class="editor" spellcheck="true" placeholder="Начните писать… Нажмите / в начале строки" aria-label="Редактор заметки"></textarea>
+            <div id="slash-menu" class="slash-menu" hidden role="listbox"></div>
+          </div>
+        </section>
+        <div id="preview-splitter" class="splitter" role="separator" aria-label="Изменить ширину панели"></div>
+        <aside id="right-panel" class="right-panel" aria-label="Предпросмотр и виджеты">
+          <div id="right-tabs" class="panel-tabs"></div>
+          <div id="preview-pane" class="preview-pane"></div>
+          <div id="widgets-pane" class="widgets-pane" hidden></div>
+        </aside>
+      </div>
+      <footer id="statusbar" class="statusbar"></footer>
+    </main>
+  </div>
+  <aside id="ai-panel" class="ai-panel" aria-hidden="true" aria-label="AI-помощник"></aside>
+  <aside id="settings-panel" class="settings-panel" aria-hidden="true" aria-label="Настройки"></aside>
+  <div id="modal-root"></div>
+  <div id="toast-root" class="toast-root" aria-live="polite"></div>
+  <div id="boot" class="boot">
+    <div class="boot-logo" aria-hidden="true">
+      <span></span><span></span><span></span><span></span>
+    </div>
+    <div class="boot-text">NMB Notes</div>
+    <div class="boot-sub">Загружаем рабочее пространство…</div>
+  </div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
