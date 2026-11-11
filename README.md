@@ -33,9 +33,9 @@ npm run check      # проверка синтаксиса без внешних
 ### Сборка
 
 ```bash
-npm run dist:mac   # dmg + zip (arm64 и x64 по конфигу)
-npm run dist:win   # NSIS installer x64
-npm run dist:linux # AppImage + deb
+npm run dist:mac   # один DMG для macOS ARM64 (Apple Silicon)
+npm run dist:win   # NSIS installer x64 (локально на Windows)
+npm run dist:linux # AppImage + deb (локально на Linux)
 npm run pack       # распакованная сборка для проверки
 ```
 
@@ -43,13 +43,13 @@ npm run pack       # распакованная сборка для провер
 
 ### CI/CD
 
-`.github/workflows/build.yml` собирает приложение в GitHub Actions:
+Сейчас CI собирает **только macOS ARM64 (Apple Silicon)** — один файл `NMB-Notes-<version>-mac-arm64.dmg`, без ZIP и без лишних артефактов.
 
-- macOS ARM64 (`macos-15`, `--mac --arm64`)
-- macOS x64 (`macos-15-intel`, `--mac --x64`)
-- Windows x64 (`windows-latest`, `--win --x64`)
+- Каждый push в `main` и ручной запуск обновляют релиз **`latest-macos-arm64`**.
+- Push тега `v*` создаёт отдельный GitHub Release с тем же единственным DMG.
+- Приложение подписывается ad-hoc в `scripts/after-pack.js`, чтобы запускаться на Apple Silicon. Нотаризации Apple нет, поэтому первый запуск требует снятия quarantine (см. ниже).
 
-При пуше тега `v*` создаётся GitHub Release со всеми артефактами. Сборки не подписаны (подпись можно включить секретами `CSC_LINK` / `CSC_KEY_PASSWORD` и настройками `electron-builder`).
+Windows/Linux-сборки пока доступны только локально.
 
 ## Настройка AI
 
@@ -220,7 +220,7 @@ src/renderer/
   js/components/          sidebar, noteList, editor, rightPanel, aiPanel, settings…
   themes/index.js         16 встроенных тем
 docs/                     виджеты, темы, конфиг, AI-промпт
-.github/workflows/        сборка macOS ARM/x64 и Windows x64
+.github/workflows/        CI: macOS ARM64 DMG
 ```
 
 Компоненты общаются через небольшой event bus и `window.api`; сторонних runtime-зависимостей нет. Только `electron` и `electron-builder` в devDependencies.
@@ -237,7 +237,7 @@ docs/                     виджеты, темы, конфиг, AI-промп�
 
 ## Решение проблем
 
-- **macOS: «Приложение повреждено» / Gatekeeper.** Сборки не подписаны. Откройте через правый клик → «Открыть» либо выполните `xattr -cr "/Applications/NMB Notes.app"`.
+- **macOS: «Приложение повреждено» / Gatekeeper.** Сборка подписана ad-hoc, но не нотаризована. Выполните `xattr -cr "/Applications/NMB Notes.app"`, затем откройте приложение (или правый клик → «Открыть»).
 - **Linux: не хватает библиотек.** Установите `libgtk-3-0 libnss3 libasound2` и другие зависимости Electron. В контейнере от root может понадобиться `--no-sandbox`.
 - **AI отвечает 401/402.** Проверьте ключ и баланс на platform.deepseek.com; кнопка «Проверить подключение» покажет причину.
 - **Пустое окно.** Запустите `npm run dev` и посмотрите консоль/DevTools: обычно это синтаксическая ошибка в пользовательском виджете или кастомном CSS.
