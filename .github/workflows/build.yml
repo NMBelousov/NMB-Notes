@@ -110,16 +110,38 @@ jobs:
           Ключ DeepSeek добавляется в **Настройки → AI**.
           NOTES
 
+          ASSET_FILE=$(find release -maxdepth 1 -name '*.dmg' -type f | head -n 1)
+          test -n "$ASSET_FILE"
+          ASSET_NAME=$(basename "$ASSET_FILE")
+
+          cleanup_stale_assets() {
+            local tag="$1" keep="$2" pattern="$3" name
+            while IFS= read -r name; do
+              [ -n "$name" ] || continue
+              case "$name" in
+                $pattern)
+                  if [ "$name" != "$keep" ]; then
+                    gh release delete-asset "$tag" "$name" --yes --repo "$GITHUB_REPOSITORY"
+                  fi
+                  ;;
+              esac
+            done < <(gh release view "$tag" --json assets --jq '.assets[].name' --repo "$GITHUB_REPOSITORY")
+          }
+
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$TAG" release/*.dmg --clobber --repo "$GITHUB_REPOSITORY"
+            cleanup_stale_assets "$TAG" "$ASSET_NAME" '*.dmg'
+            gh release upload "$TAG" "$ASSET_FILE" --clobber --repo "$GITHUB_REPOSITORY"
             gh release edit "$TAG" --notes-file release/release-notes.md --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$TAG" release/*.dmg \
+            gh release create "$TAG" "$ASSET_FILE" \
               --repo "$GITHUB_REPOSITORY" \
               "${TARGET_ARGS[@]}" \
               --title "$TITLE" \
               --notes-file release/release-notes.md \
-              || gh release upload "$TAG" release/*.dmg --clobber --repo "$GITHUB_REPOSITORY"
+              || {
+                cleanup_stale_assets "$TAG" "$ASSET_NAME" '*.dmg'
+                gh release upload "$TAG" "$ASSET_FILE" --clobber --repo "$GITHUB_REPOSITORY"
+              }
           fi
 
   build-windows-x64:
@@ -190,14 +212,36 @@ jobs:
           Ключ DeepSeek добавляется в **Настройки → AI**.
           NOTES
 
+          ASSET_FILE=$(find release -maxdepth 1 -name '*.exe' -type f | head -n 1)
+          test -n "$ASSET_FILE"
+          ASSET_NAME=$(basename "$ASSET_FILE")
+
+          cleanup_stale_assets() {
+            local tag="$1" keep="$2" pattern="$3" name
+            while IFS= read -r name; do
+              [ -n "$name" ] || continue
+              case "$name" in
+                $pattern)
+                  if [ "$name" != "$keep" ]; then
+                    gh release delete-asset "$tag" "$name" --yes --repo "$GITHUB_REPOSITORY"
+                  fi
+                  ;;
+              esac
+            done < <(gh release view "$tag" --json assets --jq '.assets[].name' --repo "$GITHUB_REPOSITORY")
+          }
+
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$TAG" release/*.exe --clobber --repo "$GITHUB_REPOSITORY"
+            cleanup_stale_assets "$TAG" "$ASSET_NAME" '*.exe'
+            gh release upload "$TAG" "$ASSET_FILE" --clobber --repo "$GITHUB_REPOSITORY"
             gh release edit "$TAG" --notes-file release/release-notes.md --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$TAG" release/*.exe \
+            gh release create "$TAG" "$ASSET_FILE" \
               --repo "$GITHUB_REPOSITORY" \
               "${TARGET_ARGS[@]}" \
               --title "$TITLE" \
               --notes-file release/release-notes.md \
-              || gh release upload "$TAG" release/*.exe --clobber --repo "$GITHUB_REPOSITORY"
+              || {
+                cleanup_stale_assets "$TAG" "$ASSET_NAME" '*.exe'
+                gh release upload "$TAG" "$ASSET_FILE" --clobber --repo "$GITHUB_REPOSITORY"
+              }
           fi
