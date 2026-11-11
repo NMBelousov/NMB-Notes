@@ -45,8 +45,8 @@ npm run pack       # распакованная сборка для провер
 
 `.github/workflows/build.yml` собирает приложение в GitHub Actions:
 
-- macOS ARM64 (`macos-14`, `--mac --arm64`)
-- macOS x64 (`macos-14`, `--mac --x64`, кросс-сборка)
+- macOS ARM64 (`macos-15`, `--mac --arm64`)
+- macOS x64 (`macos-15-intel`, `--mac --x64`)
 - Windows x64 (`windows-latest`, `--win --x64`)
 
 При пуше тега `v*` создаётся GitHub Release со всеми артефактами. Сборки не подписаны (подпись можно включить секретами `CSC_LINK` / `CSC_KEY_PASSWORD` и настройками `electron-builder`).
