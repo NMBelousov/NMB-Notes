@@ -43,13 +43,17 @@ npm run pack       # распакованная сборка для провер
 
 ### CI/CD
 
-Сейчас CI собирает **только macOS ARM64 (Apple Silicon)** — один файл `NMB-Notes-<version>-mac-arm64.dmg`, без ZIP и без лишних артефактов.
+CI собирает две версии — по **одному установочному файлу на систему**, без ZIP и лишних артефактов:
 
-- Каждый push в `main` и ручной запуск обновляют релиз **`latest-macos-arm64`**.
-- Push тега `v*` создаёт отдельный GitHub Release с тем же единственным DMG.
-- Приложение подписывается ad-hoc в `scripts/after-pack.js`, чтобы запускаться на Apple Silicon. Нотаризации Apple нет, поэтому первый запуск требует снятия quarantine (см. ниже).
+- **macOS ARM64 (Apple Silicon)** → `NMB-Notes-<version>-mac-arm64.dmg`
+- **Windows x64** → `NMB-Notes-<version>-win-x64-setup.exe`
 
-Windows/Linux-сборки пока доступны только локально.
+- Каждый push в `main` и ручной запуск обновляют общий релиз **`latest`** с двумя файлами.
+- Push тега `v*` создаёт отдельный GitHub Release с теми же двумя файлами.
+- macOS-приложение подписывается ad-hoc в `scripts/after-pack.js`. Нотаризации Apple нет, поэтому первый запуск требует снятия quarantine (см. ниже).
+- Windows-установщик не подписан, поэтому SmartScreen может попросить **«Подробнее → Выполнить всё равно»**.
+
+Linux-сборка пока доступна только локально.
 
 ## Настройка AI
 
@@ -220,7 +224,7 @@ src/renderer/
   js/components/          sidebar, noteList, editor, rightPanel, aiPanel, settings…
   themes/index.js         16 встроенных тем
 docs/                     виджеты, темы, конфиг, AI-промпт
-.github/workflows/        CI: macOS ARM64 DMG
+.github/workflows/        CI: macOS ARM64 DMG + Windows x64 EXE
 ```
 
 Компоненты общаются через небольшой event bus и `window.api`; сторонних runtime-зависимостей нет. Только `electron` и `electron-builder` в devDependencies.
@@ -238,6 +242,7 @@ docs/                     виджеты, темы, конфиг, AI-промп�
 ## Решение проблем
 
 - **macOS: «Приложение повреждено» / Gatekeeper.** Сборка подписана ad-hoc, но не нотаризована. Выполните `xattr -cr "/Applications/NMB Notes.app"`, затем откройте приложение (или правый клик → «Открыть»).
+- **Windows: SmartScreen.** Нажмите «Подробнее» → «Выполнить всё равно» — установщик не подписан сертификатом.
 - **Linux: не хватает библиотек.** Установите `libgtk-3-0 libnss3 libasound2` и другие зависимости Electron. В контейнере от root может понадобиться `--no-sandbox`.
 - **AI отвечает 401/402.** Проверьте ключ и баланс на platform.deepseek.com; кнопка «Проверить подключение» покажет причину.
 - **Пустое окно.** Запустите `npm run dev` и посмотрите консоль/DevTools: обычно это синтаксическая ошибка в пользовательском виджете или кастомном CSS.

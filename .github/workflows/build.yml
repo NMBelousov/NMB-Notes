@@ -76,24 +76,36 @@ jobs:
           hdiutil verify release/*.dmg
           shasum -a 256 release/*.dmg
 
-      - name: Publish rolling release (main)
-        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+      - name: Publish release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          TAG="latest-macos-arm64"
+          if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+            TAG="$GITHUB_REF_NAME"
+            TITLE="NMB Notes $GITHUB_REF_NAME"
+            TARGET_ARGS=(--verify-tag)
+          else
+            TAG="latest"
+            TITLE="NMB Notes — latest builds"
+            TARGET_ARGS=(--target "$GITHUB_SHA")
+          fi
           cat > release/release-notes.md <<'NOTES'
-          Автоматическая сборка NMB Notes для **macOS ARM64 (Apple Silicon)**.
+          Автоматическая сборка NMB Notes. Для каждой системы — один установочный файл.
 
-          ### Установка
-          1. Скачайте DMG-файл ниже.
-          2. Откройте DMG и перетащите **NMB Notes** в папку **Applications**.
-          3. Сборка не нотаризована. Один раз выполните в Terminal:
+          ### macOS ARM64 (Apple Silicon)
+          1. Скачайте `NMB-Notes-*-mac-arm64.dmg`.
+          2. Откройте DMG и перетащите **NMB Notes** в **Applications**.
+          3. Сборка не нотаризована. Один раз выполните:
              ```bash
              xattr -cr "/Applications/NMB Notes.app"
              ```
-          4. Запустите приложение (если macOS ругается — правый клик по иконке → «Открыть»).
+          4. Запустите приложение (если macOS ругается — правый клик → «Открыть»).
+
+          ### Windows x64
+          1. Скачайте `NMB-Notes-*-win-x64-setup.exe`.
+          2. Запустите установщик.
+          3. Если SmartScreen предупреждает — **Подробнее → Выполнить всё равно** (сборка не подписана).
 
           Ключ DeepSeek добавляется в **Настройки → AI**.
           NOTES
@@ -104,39 +116,88 @@ jobs:
           else
             gh release create "$TAG" release/*.dmg \
               --repo "$GITHUB_REPOSITORY" \
-              --target "$GITHUB_SHA" \
-              --title "NMB Notes — macOS ARM64 (latest)" \
-              --notes-file release/release-notes.md
+              "${TARGET_ARGS[@]}" \
+              --title "$TITLE" \
+              --notes-file release/release-notes.md \
+              || gh release upload "$TAG" release/*.dmg --clobber --repo "$GITHUB_REPOSITORY"
           fi
 
-      - name: Publish tagged release
-        if: startsWith(github.ref, 'refs/tags/v')
+  build-windows-x64:
+    name: Windows x64
+    if: github.event_name != 'pull_request'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check syntax
+        run: npm run check
+
+      - name: Build Windows x64 installer
+        run: npx electron-builder --win --x64 --publish never
+
+      - name: Verify installer
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem -Path release -Filter *.exe -File)
+          if ($files.Count -ne 1) {
+            throw "Ожидался ровно один EXE, найдено: $($files.Count)"
+          }
+          $files | Format-List Name, Length
+          Get-FileHash $files[0].FullName -Algorithm SHA256 | Format-List
+
+      - name: Publish release
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+            TAG="$GITHUB_REF_NAME"
+            TITLE="NMB Notes $GITHUB_REF_NAME"
+            TARGET_ARGS=(--verify-tag)
+          else
+            TAG="latest"
+            TITLE="NMB Notes — latest builds"
+            TARGET_ARGS=(--target "$GITHUB_SHA")
+          fi
           cat > release/release-notes.md <<'NOTES'
-          Сборка NMB Notes для **macOS ARM64 (Apple Silicon)**.
+          Автоматическая сборка NMB Notes. Для каждой системы — один установочный файл.
 
-          ### Установка
-          1. Скачайте DMG-файл ниже.
-          2. Откройте DMG и перетащите **NMB Notes** в папку **Applications**.
-          3. Сборка не нотаризована. Один раз выполните в Terminal:
+          ### macOS ARM64 (Apple Silicon)
+          1. Скачайте `NMB-Notes-*-mac-arm64.dmg`.
+          2. Откройте DMG и перетащите **NMB Notes** в **Applications**.
+          3. Сборка не нотаризована. Один раз выполните:
              ```bash
              xattr -cr "/Applications/NMB Notes.app"
              ```
-          4. Запустите приложение (если macOS ругается — правый клик по иконке → «Открыть»).
+          4. Запустите приложение (если macOS ругается — правый клик → «Открыть»).
+
+          ### Windows x64
+          1. Скачайте `NMB-Notes-*-win-x64-setup.exe`.
+          2. Запустите установщик.
+          3. Если SmartScreen предупреждает — **Подробнее → Выполнить всё равно** (сборка не подписана).
 
           Ключ DeepSeek добавляется в **Настройки → AI**.
           NOTES
 
-          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" release/*.dmg --clobber --repo "$GITHUB_REPOSITORY"
-            gh release edit "$GITHUB_REF_NAME" --notes-file release/release-notes.md --repo "$GITHUB_REPOSITORY"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" release/*.exe --clobber --repo "$GITHUB_REPOSITORY"
+            gh release edit "$TAG" --notes-file release/release-notes.md --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$GITHUB_REF_NAME" release/*.dmg \
+            gh release create "$TAG" release/*.exe \
               --repo "$GITHUB_REPOSITORY" \
-              --verify-tag \
-              --title "NMB Notes $GITHUB_REF_NAME" \
-              --notes-file release/release-notes.md
+              "${TARGET_ARGS[@]}" \
+              --title "$TITLE" \
+              --notes-file release/release-notes.md \
+              || gh release upload "$TAG" release/*.exe --clobber --repo "$GITHUB_REPOSITORY"
           fi
