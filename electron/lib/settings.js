@@ -43,7 +43,7 @@ const DEFAULT_SETTINGS = {
     enabled: ['stats', 'outline', 'quick-actions', 'tags', 'related'],
   },
   updates: {
-    repo: 'NMBelousov/NMB---Note-s',
+    repo: 'NMBelousov/NMB-Notes',
     channel: 'latest',
     apiBase: 'https://api.github.com',
     checkOnStartup: true,
@@ -75,7 +75,9 @@ function normalizeBaseUrl(value) {
 function normalizeRepo(value) {
   const fallback = DEFAULT_SETTINGS.updates.repo;
   if (typeof value !== 'string') return fallback;
-  const trimmed = value.trim().slice(0, 200);
+  let trimmed = value.trim().slice(0, 200);
+  // Репозиторий был переименован; старые настройки продолжают работать.
+  if (trimmed.toLowerCase() === 'nmbelousov/nmb---note-s') trimmed = fallback;
   return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(trimmed) ? trimmed : fallback;
 }
 

@@ -36,7 +36,7 @@ NMB Notes читает необязательный JSON-конфиг, как Ob
       "enabled": ["stats", "outline", "quick-actions"]
     },
     "updates": {
-      "repo": "NMBelousov/NMB---Note-s",
+      "repo": "NMBelousov/NMB-Notes",
       "channel": "latest",
       "checkOnStartup": true
     }
