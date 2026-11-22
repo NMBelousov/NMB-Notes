@@ -38,9 +38,13 @@ const api = window.api;
 function applyLayout(settings) {
   const root = document.documentElement;
   if (!settings) return;
+  root.style.setProperty('--sidebar-w', `${settings.layout.sidebarWidth}px`);
   root.style.setProperty('--preview-w', `${settings.layout.previewWidth}px`);
   root.style.setProperty('--list-w', `${settings.layout.listWidth}px`);
   root.classList.toggle('compact', settings.appearance.compact === true);
+  const app = document.getElementById('app');
+  app?.classList.toggle('sidebar-collapsed', settings.layout.sidebar === false);
+  app?.classList.toggle('list-collapsed', settings.layout.listCollapsed === true);
 }
 
 async function exportPdfCurrent() {
@@ -88,6 +92,7 @@ function showShortcuts() {
     ['Экспорт в PDF', `${mod} + Shift + P`],
     ['Импорт Markdown', `${mod} + O`],
     ['Все заметки / Избранное', `${mod} + 1 / ${mod} + 2`],
+    ['Вложить / вынуть пункт списка', 'Tab / Shift + Tab'],
     ['Slash-меню', '/ в начале строки'],
     ['Выйти из панели', 'Esc'],
   ];
@@ -161,6 +166,83 @@ function setupSplitter() {
     splitter.addEventListener('pointermove', onMove);
     splitter.addEventListener('pointerup', onUp);
     splitter.addEventListener('pointercancel', onUp);
+  });
+}
+
+function setupColumnSplitters() {
+  const root = document.documentElement;
+  const app = document.getElementById('app');
+  if (!app) return;
+
+  const bind = (splitter, options) => {
+    if (!splitter) return;
+    let width = options.initial();
+    splitter.addEventListener('pointerdown', (event) => {
+      if (options.disabled()) return;
+      event.preventDefault();
+      splitter.setPointerCapture(event.pointerId);
+      splitter.classList.add('dragging');
+      const startX = event.clientX;
+      const startWidth = options.current();
+      width = startWidth;
+      const onMove = (moveEvent) => {
+        width = options.compute(startX, moveEvent.clientX, startWidth);
+        options.apply(width);
+      };
+      const onUp = () => {
+        splitter.removeEventListener('pointermove', onMove);
+        splitter.removeEventListener('pointerup', onUp);
+        splitter.removeEventListener('pointercancel', onUp);
+        splitter.classList.remove('dragging');
+        options.persist(width);
+      };
+      splitter.addEventListener('pointermove', onMove);
+      splitter.addEventListener('pointerup', onUp);
+      splitter.addEventListener('pointercancel', onUp);
+    });
+    splitter.addEventListener('dblclick', () => {
+      if (options.disabled()) return;
+      width = options.initial();
+      options.apply(width);
+      options.persist(width);
+    });
+  };
+
+  const sidebarSplitter = $('#sidebar-splitter');
+  const listSplitter = $('#list-splitter');
+
+  bind(sidebarSplitter, {
+    disabled: () => app.classList.contains('sidebar-collapsed'),
+    initial: () => 224,
+    current: () => {
+      const sidebar = document.getElementById('sidebar');
+      return Math.round(sidebar?.getBoundingClientRect().width || 224);
+    },
+    compute: (_startX, x) => Math.round(Math.min(360, Math.max(176, x))),
+    apply: (value) => root.style.setProperty('--sidebar-w', `${value}px`),
+    persist: (value) => {
+      updateSettings({ layout: { sidebarWidth: value } }).catch(notifyError);
+    },
+  });
+
+  bind(listSplitter, {
+    disabled: () => app.classList.contains('list-collapsed'),
+    initial: () => 292,
+    current: () => {
+      const list = document.getElementById('note-list');
+      return Math.round(list?.getBoundingClientRect().width || 292);
+    },
+    compute: (_startX, x) => {
+      const sidebar = document.getElementById('sidebar');
+      const sidebarWidth = app.classList.contains('sidebar-collapsed')
+        ? 0
+        : sidebar?.getBoundingClientRect().width || 0;
+      return Math.round(Math.min(520, Math.max(230, x - sidebarWidth)));
+    },
+    apply: (value) => root.style.setProperty('--list-w', `${value}px`),
+    persist: (value) => {
+      updateSettings({ layout: { listWidth: value } }).catch(notifyError);
+    },
   });
 }
 
@@ -383,9 +465,26 @@ function setupEvents() {
     if (open) emit('ai:close');
   });
 
+  on('ui:toggle-sidebar', () => {
+    const app = document.getElementById('app');
+    if (!app) return;
+    const nextCollapsed = !app.classList.contains('sidebar-collapsed');
+    app.classList.toggle('sidebar-collapsed', nextCollapsed);
+    updateSettings({ layout: { sidebar: !nextCollapsed } }).catch(notifyError);
+  });
+
+  on('ui:toggle-note-list', () => {
+    const app = document.getElementById('app');
+    if (!app) return;
+    const nextCollapsed = !app.classList.contains('list-collapsed');
+    app.classList.toggle('list-collapsed', nextCollapsed);
+    updateSettings({ layout: { listCollapsed: nextCollapsed } }).catch(notifyError);
+  });
+
   setupMenuActions();
   setupGlobalKeys();
   setupSplitter();
+  setupColumnSplitters();
   setupUpdateCheck();
 
   api.app.onBeforeClose(async () => {
@@ -427,7 +526,7 @@ function setupEvents() {
       if (
         sidebar?.classList.contains('open') &&
         !sidebar.contains(target) &&
-        !target.closest('.topbar-mobile')
+        !target.closest('.sidebar-toggle')
       ) {
         sidebar.classList.remove('open');
       }

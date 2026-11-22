@@ -22,34 +22,16 @@ export function renderAbout() {
           marginBottom: '18px',
         },
       },
-      h(
-        'div',
-        {
-          style: {
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
-            background: 'linear-gradient(145deg, var(--accent), color-mix(in srgb, var(--accent) 45%, #101018))',
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-            gap: '3px',
-            paddingBottom: '12px',
-            flex: '0 0 auto',
-          },
+      h('img', {
+        src: 'assets/logo.png',
+        alt: 'NMB Notes',
+        style: {
+          width: '76px',
+          height: '48px',
+          objectFit: 'contain',
+          flex: '0 0 auto',
         },
-        ...[14, 26, 20, 10].map((height) =>
-          h('span', {
-            style: {
-              display: 'block',
-              width: '4px',
-              borderRadius: '2px',
-              height: `${height}px`,
-              background: 'rgba(255,255,255,.92)',
-            },
-          })
-        )
-      ),
+      }),
       h(
         'div',
         {},
@@ -59,7 +41,7 @@ export function renderAbout() {
         }),
         h('div', {
           style: { fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' },
-          text: `Версия ${info.version || '1.0.0'} · ${info.platform || ''} ${info.arch || ''}`,
+          text: `Версия ${info.version || '1.1.0'} · ${info.platform || ''} ${info.arch || ''}`,
         }),
         h('div', {
           style: { fontSize: '10.5px', color: 'var(--text-dim)', marginTop: '5px' },

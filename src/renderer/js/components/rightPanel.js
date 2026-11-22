@@ -33,6 +33,23 @@ export function mountRightPanel({ panelEl, tabsEl, previewEl, widgetsEl }) {
   ];
   const tabButtons = new Map();
 
+  const isNarrow = () => window.matchMedia('(max-width: 1120px)').matches;
+  const isPanelOpen = () =>
+    isNarrow()
+      ? panelEl.classList.contains('open')
+      : !panelEl.classList.contains('collapsed');
+
+  const setPanelOpen = (open) => {
+    panelEl.classList.toggle('collapsed', !open && !isNarrow());
+    panelEl.classList.toggle('open', open);
+    if (!isNarrow()) {
+      document
+        .getElementById('preview-splitter')
+        ?.classList.toggle('hidden', !open);
+    }
+    emit('ui:right-changed', { tab: state.rightTab, open });
+  };
+
   const renderTabs = () => {
     clear(tabsEl);
     tabButtons.clear();
@@ -57,9 +74,15 @@ export function mountRightPanel({ panelEl, tabsEl, previewEl, widgetsEl }) {
         'button',
         {
           class: 'btn icon-only',
-          title: 'Настройки виджетов',
-          'aria-label': 'Настройки виджетов',
-          onClick: () => emit('ui:open-settings', { tab: 'widgets' }),
+          title:
+            state.rightTab === 'widgets'
+              ? 'Настройки виджетов'
+              : 'Настройки предпросмотра',
+          'aria-label': 'Настройки этого раздела',
+          onClick: () =>
+            emit('ui:open-settings', {
+              tab: state.rightTab === 'widgets' ? 'widgets' : 'appearance',
+            }),
         },
         icon('settings')
       )
@@ -71,16 +94,7 @@ export function mountRightPanel({ panelEl, tabsEl, previewEl, widgetsEl }) {
           class: 'btn icon-only',
           title: 'Закрыть панель',
           'aria-label': 'Закрыть панель',
-          onClick: () => {
-            const narrow = window.matchMedia('(max-width: 1120px)').matches;
-            if (narrow) {
-              panelEl.classList.remove('open');
-            } else {
-              panelEl.classList.add('collapsed');
-              document.getElementById('preview-splitter')?.classList.add('hidden');
-            }
-            emit('ui:right-changed', { tab: state.rightTab, open: false });
-          },
+          onClick: () => setPanelOpen(false),
         },
         icon('close')
       )
@@ -98,20 +112,19 @@ export function mountRightPanel({ panelEl, tabsEl, previewEl, widgetsEl }) {
     const changed = state.rightTab !== next;
     state.rightTab = next;
     syncTabs();
-    panelEl.classList.remove('collapsed');
-    document.getElementById('preview-splitter')?.classList.remove('hidden');
+    renderTabs();
     previewEl.hidden = next !== 'preview';
     widgetsEl.hidden = next !== 'widgets';
-    panelEl.classList.add('open');
+    setPanelOpen(true);
     if (next === 'preview') renderPreview();
     else renderWidgets(true);
-    emit('ui:right-changed', { tab: next, open: true });
     if (persist && changed) {
       updateSettings({ layout: { rightTab: next } }).catch(() => {});
     }
   };
 
   on('ui:show-right-tab', ({ tab }) => setTab(tab));
+  on('ui:toggle-right-panel', () => setPanelOpen(!isPanelOpen()));
 
   // ---------- Предпросмотр ----------
   const toolbar = h('div', { class: 'preview-toolbar' });
@@ -296,7 +309,7 @@ export function mountRightPanel({ panelEl, tabsEl, previewEl, widgetsEl }) {
     const lines = note.body.split('\n');
     if (!lines[line]) return;
     lines[line] = lines[line].replace(
-      /^(\s*[-*+]\s+\[)[ xX](\])/,
+      /^(\s*(?:[-*+]|\d+\.)\s+\[)[ xX](\])/,
       checkbox.checked ? '$1x$2' : '$1 $2'
     );
     emit('editor:replace-body', { body: lines.join('\n') });
@@ -407,15 +420,6 @@ export function mountRightPanel({ panelEl, tabsEl, previewEl, widgetsEl }) {
         },
         icon('plus')
       ),
-      h(
-        'button',
-        {
-          class: 'btn icon-only',
-          title: 'Настройки виджетов',
-          onClick: () => emit('ui:open-settings', { tab: 'widgets' }),
-        },
-        icon('settings')
-      )
     );
     widgetsEl.appendChild(toolbarEl);
 

@@ -1,6 +1,12 @@
 import { state, on, activeNote, touchNote, flushNotes, markSaved } from '../state.js';
 import { createSlashMenu } from './slashMenu.js';
 import { toast, notifyError } from '../toast.js';
+import {
+  indentListSelection,
+  nextListPrefix,
+  parseListLine,
+  renumberOrderedLists,
+} from '../lists.js';
 
 export function mountEditor(textarea) {
   let currentId = null;
@@ -58,6 +64,20 @@ export function mountEditor(textarea) {
     dispatchInput();
   };
 
+  const applyRenumber = (options = {}) => {
+    if (state.settings?.editor?.smartLists === false) return;
+    const result = renumberOrderedLists(
+      textarea.value,
+      textarea.selectionStart,
+      textarea.selectionEnd,
+      options
+    );
+    if (result.text === textarea.value) return;
+    textarea.value = result.text;
+    textarea.selectionStart = result.selectionStart;
+    textarea.selectionEnd = result.selectionEnd;
+  };
+
   const smartListEnter = () => {
     if (state.settings?.editor?.smartLists === false) return false;
     const start = textarea.selectionStart;
@@ -65,21 +85,27 @@ export function mountEditor(textarea) {
     const before = textarea.value.slice(0, start);
     const lineStart = before.lastIndexOf('\n') + 1;
     const line = before.slice(lineStart);
-    const match = line.match(/^(\s*)([-*+]|\d+\.)\s+(\[[ xX]\]\s+)?(.*)$/);
-    if (!match) return false;
-    const [, indent, marker, task, rest] = match;
-    const nextMarker = /^\d+\.$/.test(marker)
-      ? `${parseInt(marker, 10) + 1}.`
-      : marker;
-    if (!rest.trim()) {
-      const value = textarea.value;
-      textarea.value = value.slice(0, lineStart) + value.slice(start);
-      textarea.selectionStart = textarea.selectionEnd = lineStart;
+    const info = parseListLine(line);
+    if (!info) return false;
+    const value = textarea.value;
+
+    if (!info.content.trim()) {
+      // Пустой вложенный пункт сначала поднимается на уровень выше,
+      // как в Obsidian/Notion. Пустой пункт верхнего уровня удаляется.
+      if (info.indent > 0) {
+        const nextIndent = ' '.repeat(Math.max(0, Math.floor(info.indent / 2) * 2 - 2));
+        const nextLine = `${nextIndent}${line.slice(info.rawIndent.length)}`;
+        textarea.value = value.slice(0, lineStart) + nextLine + value.slice(start);
+        textarea.selectionStart = textarea.selectionEnd = lineStart + nextLine.length;
+      } else {
+        textarea.value = value.slice(0, lineStart) + value.slice(start);
+        textarea.selectionStart = textarea.selectionEnd = lineStart;
+      }
       dispatchInput();
       return true;
     }
-    const insert = `\n${indent}${nextMarker} ${task ? '[ ] ' : ''}`;
-    const value = textarea.value;
+
+    const insert = `\n${nextListPrefix(info)}`;
     textarea.value = value.slice(0, start) + insert + value.slice(start);
     textarea.selectionStart = textarea.selectionEnd = start + insert.length;
     dispatchInput();
@@ -88,6 +114,7 @@ export function mountEditor(textarea) {
 
   textarea.addEventListener('input', () => {
     if (!activeNote()) return;
+    applyRenumber();
     touchNote({ body: textarea.value });
     slash.handleInput();
   });
@@ -117,9 +144,40 @@ export function mountEditor(textarea) {
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const value = textarea.value;
+      const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+      let lineEnd = value.indexOf('\n', end);
+      if (lineEnd === -1) lineEnd = value.length;
+      const currentLineEnd = value.indexOf('\n', start);
+      const currentLine = value.slice(
+        lineStart,
+        currentLineEnd === -1 ? value.length : currentLineEnd
+      );
+      const selectedBlock = value.slice(lineStart, lineEnd);
+      const smartLists = state.settings?.editor?.smartLists !== false;
+      const inList =
+        smartLists &&
+        (Boolean(parseListLine(currentLine)) ||
+          selectedBlock.split('\n').some((line) => Boolean(parseListLine(line))));
+
+      if (inList) {
+        const result = indentListSelection(
+          value,
+          start,
+          end,
+          event.shiftKey ? -1 : 1
+        );
+        if (result.text !== value) {
+          textarea.value = result.text;
+          textarea.selectionStart = result.selectionStart;
+          textarea.selectionEnd = result.selectionEnd;
+          applyRenumber({ resetNested: !event.shiftKey });
+          dispatchInput();
+        }
+        return;
+      }
+
       if (start === end) {
         if (event.shiftKey) {
-          const lineStart = value.lastIndexOf('\n', start - 1) + 1;
           const remove = value.slice(lineStart, start).match(/ {1,2}$/)?.[0].length || 0;
           if (remove) {
             textarea.value = value.slice(0, start - remove) + value.slice(start);
@@ -134,7 +192,6 @@ export function mountEditor(textarea) {
         }
         return;
       }
-      const lineStart = value.lastIndexOf('\n', start - 1) + 1;
       const block = value.slice(lineStart, end);
       const indented = block
         .split('\n')

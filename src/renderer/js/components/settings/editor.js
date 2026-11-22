@@ -24,7 +24,7 @@ export function renderEditorSettings({ refresh }) {
       ),
       toggleRow(
         'Умные списки',
-        'Продолжать маркеры списков и чек-листов при Enter',
+        'Продолжать маркеры, автоматически нумеровать и поддерживать вложенность',
         settings.editor.smartLists,
         (value) => updateSettings({ editor: { smartLists: value } }).catch(notifyError)
       ),
@@ -100,6 +100,7 @@ export function renderEditorSettings({ refresh }) {
             ['Настройки', `${mod} + ,`],
             ['Дублировать заметку', `${mod} + Shift + D`],
             ['Найти в тексте', `${mod} + F`],
+            ['Вложить / вынуть пункт списка', 'Tab / Shift + Tab'],
             ['Все заметки / Избранное', `${mod} + 1 / ${mod} + 2`],
           ];
         })())

@@ -9,6 +9,16 @@
 }
 
 /* ---------- Колонка 1: меню ---------- */
+.app.sidebar-collapsed .sidebar,
+.app.sidebar-collapsed .sidebar-splitter {
+  display: none;
+}
+
+.app.list-collapsed .note-list,
+.app.list-collapsed .list-splitter {
+  display: none;
+}
+
 .sidebar {
   width: var(--sidebar-w);
   flex: 0 0 var(--sidebar-w);
@@ -31,40 +41,11 @@
 }
 
 .brand-logo {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: linear-gradient(145deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #101018));
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 2px;
-  padding-bottom: 7px;
+  width: 38px;
+  height: 24px;
+  object-fit: contain;
   flex: 0 0 auto;
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
-}
-
-.brand-logo span {
-  display: block;
-  width: 3px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.92);
-}
-
-.brand-logo span:nth-child(1) {
-  height: 7px;
-}
-
-.brand-logo span:nth-child(2) {
-  height: 13px;
-}
-
-.brand-logo span:nth-child(3) {
-  height: 10px;
-}
-
-.brand-logo span:nth-child(4) {
-  height: 5px;
+  filter: drop-shadow(0 3px 7px color-mix(in srgb, #1f5fbf 35%, transparent));
 }
 
 .brand-text {
@@ -507,10 +488,6 @@
   z-index: 15;
 }
 
-.topbar-mobile {
-  display: none;
-}
-
 .title-input {
   flex: 1;
   min-width: 60px;
@@ -626,6 +603,28 @@
   background: transparent;
   position: relative;
   z-index: 10;
+  touch-action: none;
+}
+
+.splitter.column-splitter {
+  width: 4px;
+  flex: 0 0 4px;
+  margin: 0 -2px;
+  z-index: 32;
+}
+
+.splitter.column-splitter::after {
+  left: 1px;
+  opacity: 0.55;
+}
+
+.splitter.column-splitter:hover::after,
+.splitter.column-splitter.dragging::after {
+  opacity: 1;
+}
+
+.splitter.hidden {
+  display: none;
 }
 
 .splitter::after {
@@ -907,10 +906,6 @@
   .splitter {
     display: none;
   }
-
-  .topbar-actions .panel-toggle {
-    display: inline-flex;
-  }
 }
 
 @media (max-width: 900px) {
@@ -931,8 +926,9 @@
     visibility: visible;
   }
 
-  .topbar-mobile {
-    display: inline-flex;
+  /* На узком экране меню — выдвижная панель, а не исчезающая колонка. */
+  .app.sidebar-collapsed .sidebar {
+    display: flex;
   }
 
   .note-list {
@@ -964,8 +960,9 @@
     visibility: visible;
   }
 
-  .topbar-mobile.list-toggle {
-    display: inline-flex;
+  /* На телефоне список остаётся выдвижным, даже если колонка скрыта. */
+  .app.list-collapsed .note-list {
+    display: flex;
   }
 
   .editor {

@@ -24,8 +24,7 @@ export function mountTopbar(root) {
   let titleInput = null;
   let folderSelect = null;
   let starBtn = null;
-  let previewBtn = null;
-  let widgetsBtn = null;
+  let panelBtn = null;
   let aiBtn = null;
   let moreBtn = null;
 
@@ -59,8 +58,6 @@ export function mountTopbar(root) {
   };
 
   const syncTabs = () => {
-    previewBtn?.classList.toggle('active', state.rightTab === 'preview');
-    widgetsBtn?.classList.toggle('active', state.rightTab === 'widgets');
     aiBtn?.classList.toggle('active', state.aiOpen);
   };
 
@@ -221,11 +218,15 @@ export function mountTopbar(root) {
   const menuBtn = h(
     'button',
     {
-      class: 'btn icon-only topbar-mobile',
-      title: 'Меню',
-      'aria-label': 'Открыть меню',
+      class: 'btn icon-only sidebar-toggle',
+      title: 'Показать/скрыть меню',
+      'aria-label': 'Показать или скрыть меню',
       onClick: () => {
-        document.getElementById('sidebar')?.classList.toggle('open');
+        if (window.matchMedia('(max-width: 900px)').matches) {
+          document.getElementById('sidebar')?.classList.toggle('open');
+        } else {
+          emit('ui:toggle-sidebar');
+        }
       },
     },
     icon('menu')
@@ -234,36 +235,29 @@ export function mountTopbar(root) {
   const listBtn = h(
     'button',
     {
-      class: 'btn icon-only topbar-mobile list-toggle',
-      title: 'Список заметок',
-      'aria-label': 'Список заметок',
+      class: 'btn icon-only list-toggle',
+      title: 'Показать/скрыть список заметок',
+      'aria-label': 'Показать или скрыть список заметок',
       onClick: () => {
-        document.getElementById('note-list')?.classList.toggle('open');
+        if (window.matchMedia('(max-width: 720px)').matches) {
+          document.getElementById('note-list')?.classList.toggle('open');
+        } else {
+          emit('ui:toggle-note-list');
+        }
       },
     },
     icon('list')
   );
 
-  previewBtn = h(
+  panelBtn = h(
     'button',
     {
-      class: 'btn icon-only panel-toggle',
-      title: 'Предпросмотр',
-      'aria-label': 'Предпросмотр',
-      onClick: () => emit('ui:show-right-tab', { tab: 'preview' }),
+      class: 'btn icon-only',
+      title: 'Панель предпросмотра и виджетов',
+      'aria-label': 'Открыть или закрыть панель предпросмотра',
+      onClick: () => emit('ui:toggle-right-panel'),
     },
-    icon('eye')
-  );
-
-  widgetsBtn = h(
-    'button',
-    {
-      class: 'btn icon-only panel-toggle',
-      title: 'Виджеты',
-      'aria-label': 'Виджеты',
-      onClick: () => emit('ui:show-right-tab', { tab: 'widgets' }),
-    },
-    icon('widgets')
+    icon('panelRight')
   );
 
   aiBtn = h(
@@ -288,17 +282,6 @@ export function mountTopbar(root) {
     icon('more')
   );
 
-  const settingsBtn = h(
-    'button',
-    {
-      class: 'btn icon-only',
-      title: `Настройки (${modKey()}+,)`,
-      'aria-label': 'Настройки',
-      onClick: () => emit('ui:open-settings', { tab: 'appearance' }),
-    },
-    icon('settings')
-  );
-
   root.appendChild(menuBtn);
   root.appendChild(listBtn);
   root.appendChild(titleInput);
@@ -308,12 +291,10 @@ export function mountTopbar(root) {
     h(
       'div',
       { class: 'topbar-actions' },
-      previewBtn,
-      widgetsBtn,
+      panelBtn,
       h('div', { class: 'topbar-sep' }),
       aiBtn,
-      moreBtn,
-      settingsBtn
+      moreBtn
     )
   );
 
@@ -343,5 +324,11 @@ export function mountTopbar(root) {
     syncTitle();
   });
   on('ai:state', syncTabs);
-  on('ui:right-changed', syncTabs);
+  on('ui:right-changed', ({ open } = {}) => {
+    panelBtn?.classList.toggle('active', open !== false);
+    panelBtn?.setAttribute(
+      'title',
+      open === false ? 'Открыть панель предпросмотра' : 'Скрыть панель предпросмотра'
+    );
+  });
 }

@@ -27,14 +27,12 @@ export function mountSidebar(root) {
       h(
         'div',
         { class: 'sidebar-head' },
-        h(
-          'div',
-          { class: 'brand-logo', 'aria-hidden': 'true' },
-          h('span'),
-          h('span'),
-          h('span'),
-          h('span')
-        ),
+        h('img', {
+          class: 'brand-logo',
+          src: 'assets/logo.png',
+          alt: '',
+          'aria-hidden': 'true',
+        }),
         h(
           'div',
           { class: 'brand-text' },

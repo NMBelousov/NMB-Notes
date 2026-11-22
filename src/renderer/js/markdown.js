@@ -6,6 +6,7 @@
  */
 
 import { escapeAttr, escapeHtml } from './dom.js';
+import { indentWidth, parseListLine } from './lists.js';
 
 const LINK_RE = /^(https?:\/\/|mailto:|#)/i;
 const IMAGE_RE = /^(https?:\/\/|data:image\/)/i;
@@ -74,6 +75,91 @@ function parseTableRow(line) {
   if (line.trim().startsWith('|')) cells = cells.slice(1);
   if (line.trim().endsWith('|')) cells = cells.slice(0, -1);
   return cells;
+}
+
+/**
+ * Собирает дерево вложенных списков по отступам.
+ * Смена типа списка на одном уровне создаёт соседний список, как в Markdown.
+ */
+function buildListTree(items) {
+  const roots = [];
+  const stack = [];
+
+  for (const item of items) {
+    while (stack.length && item.indent < stack[stack.length - 1].indent) {
+      stack.pop();
+    }
+
+    let container = stack[stack.length - 1];
+    if (!container || item.indent > container.indent) {
+      const list = {
+        indent: item.indent,
+        ordered: item.ordered,
+        start: item.number || 1,
+        items: [],
+      };
+      if (container && container.items.length) {
+        container.items[container.items.length - 1].children.push(list);
+      } else {
+        roots.push(list);
+      }
+      stack.push(list);
+      container = list;
+    } else if (container.ordered !== item.ordered) {
+      stack.pop();
+      const parent = stack[stack.length - 1];
+      const list = {
+        indent: item.indent,
+        ordered: item.ordered,
+        start: item.number || 1,
+        items: [],
+      };
+      if (parent && parent.items.length) {
+        parent.items[parent.items.length - 1].children.push(list);
+      } else {
+        roots.push(list);
+      }
+      stack.push(list);
+      container = list;
+    }
+
+    container.items.push({
+      content: item.content,
+      task: item.task,
+      checked: item.checked,
+      line: item.line,
+      children: [],
+    });
+  }
+
+  return roots;
+}
+
+function renderListTree(list, opts) {
+  const tag = list.ordered ? 'ol' : 'ul';
+  const start =
+    list.ordered && Number.isFinite(list.start) && list.start !== 1
+      ? ` start="${list.start}"`
+      : '';
+  const items = list.items
+    .map((item) => {
+      const children = item.children.map((child) => renderListTree(child, opts)).join('');
+      if (item.task) {
+        const checkbox = opts.taskLine
+          ? `<input type="checkbox" class="task-checkbox" data-line="${item.line}"${
+              item.checked ? ' checked' : ''
+            } aria-label="Отметить задачу">`
+          : `<input type="checkbox" class="task-checkbox"${
+              item.checked ? ' checked' : ''
+            } disabled>`;
+        return `<li class="task-item">${checkbox}<span>${inlineFormat(
+          item.content
+        )}</span>${children}</li>`;
+      }
+      return `<li>${inlineFormat(item.content)}${children}</li>`;
+    })
+    .join('');
+  return `<${tag}${start}>${items}</${tag}>`;
 }
 
 function isBlockStart(line) {
@@ -218,35 +304,37 @@ export function renderMarkdown(source, options = {}) {
       continue;
     }
 
-    // Списки и чек-листы
-    const listMatch = line.match(/^\s*([-*+]|\d+\.)\s+(.*)$/);
-    if (listMatch) {
+    // Списки, чек-листы и вложенные уровни
+    if (parseListLine(line)) {
       flushParagraph(paragraph);
-      const ordered = /^\d+\./.test(listMatch[1]);
       const items = [];
       while (index < lines.length) {
-        const match = lines[index].match(/^\s*([-*+]|\d+\.)\s+(.*)$/);
-        if (!match) break;
-        if (/^\d+\./.test(match[1]) !== ordered) break;
-        const content = match[2];
-        const task = content.match(/^\[([ xX])\]\s+(.*)$/);
-        const lineNumber = index;
-        if (task) {
-          const checked = task[1].toLowerCase() === 'x';
-          const checkbox = opts.taskLine
-            ? `<input type="checkbox" class="task-checkbox" data-line="${lineNumber}"${
-                checked ? ' checked' : ''
-              } aria-label="Отметить задачу">`
-            : `<input type="checkbox" class="task-checkbox"${checked ? ' checked' : ''} disabled>`;
-          items.push(
-            `<li class="task-item">${checkbox}<span>${inlineFormat(task[2])}</span></li>`
-          );
-        } else {
-          items.push(`<li>${inlineFormat(content)}</li>`);
+        const parsed = parseListLine(lines[index]);
+        if (!parsed) {
+          // Одна пустая строка внутри списка не разрывает его (loose list),
+          // но две пустые строки или обычный текст — разрывают.
+          if (lines[index].trim() === '') {
+            const next = index + 1;
+            if (next < lines.length && lines[next].trim() && parseListLine(lines[next])) {
+              index = next;
+              continue;
+            }
+          }
+          break;
         }
+        items.push({
+          indent: indentWidth(parsed.rawIndent),
+          ordered: parsed.ordered,
+          number: parsed.number,
+          task: parsed.task,
+          checked: parsed.checked,
+          content: parsed.content,
+          line: index,
+        });
         index += 1;
       }
-      out.push(`<${ordered ? 'ol' : 'ul'}>${items.join('')}</${ordered ? 'ol' : 'ul'}>`);
+      const tree = buildListTree(items);
+      out.push(tree.map((list) => renderListTree(list, opts)).join(''));
       continue;
     }
 
@@ -339,7 +427,7 @@ export function extractTags(source) {
 
 export function countTasks(source) {
   const text = String(source ?? '');
-  const total = (text.match(/^\s*[-*+]\s+\[[ xX]\]/gm) || []).length;
-  const done = (text.match(/^\s*[-*+]\s+\[[xX]\]/gm) || []).length;
+  const total = (text.match(/^\s*(?:[-*+]|\d+\.)\s+\[[ xX]\]/gm) || []).length;
+  const done = (text.match(/^\s*(?:[-*+]|\d+\.)\s+\[[xX]\]/gm) || []).length;
   return { total, done };
 }

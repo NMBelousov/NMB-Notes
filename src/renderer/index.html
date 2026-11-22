@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; media-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none';">
   <title>NMB Notes</title>
+  <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="stylesheet" href="styles/base.css">
   <link rel="stylesheet" href="styles/layout.css">
   <link rel="stylesheet" href="styles/components.css">
@@ -13,7 +14,9 @@
 <body>
   <div id="app" class="app">
     <aside id="sidebar" class="sidebar" aria-label="Навигация"></aside>
+    <div id="sidebar-splitter" class="splitter column-splitter sidebar-splitter" role="separator" aria-label="Изменить ширину меню" title="Потяните, чтобы изменить ширину. Двойной клик — сбросить"></div>
     <section id="note-list" class="note-list" aria-label="Список заметок"></section>
+    <div id="list-splitter" class="splitter column-splitter list-splitter" role="separator" aria-label="Изменить ширину списка заметок" title="Потяните, чтобы изменить ширину. Двойной клик — сбросить"></div>
     <main class="workspace">
       <header id="note-topbar" class="note-topbar"></header>
       <div id="workspace-main" class="workspace-main">
@@ -38,9 +41,7 @@
   <div id="modal-root"></div>
   <div id="toast-root" class="toast-root" aria-live="polite"></div>
   <div id="boot" class="boot">
-    <div class="boot-logo" aria-hidden="true">
-      <span></span><span></span><span></span><span></span>
-    </div>
+    <img class="boot-logo" src="assets/logo.png" alt="" aria-hidden="true">
     <div class="boot-text">NMB Notes</div>
     <div class="boot-sub">Загружаем рабочее пространство…</div>
   </div>

@@ -60,7 +60,7 @@ NMB Notes читает необязательный JSON-конфиг, как Ob
 
 - `theme`
 - `appearance.uiFont`, `editorFont`, `editorFontSize`, `lineHeight`, `accent`, `compact`, `customCss`
-- `layout.sidebar`, `listWidth`, `previewWidth`, `rightTab`
+- `layout.sidebar`, `sidebarWidth`, `listWidth`, `previewWidth`, `listCollapsed`, `rightTab`
 - `editor.livePreview`, `slashMenu`, `smartLists`, `spellcheck`, `autoSaveMs`
 - `ai.baseUrl`, `model`, `temperature`, `maxTokens`, `includeContext`, `stream`
 - `widgets.enabled`

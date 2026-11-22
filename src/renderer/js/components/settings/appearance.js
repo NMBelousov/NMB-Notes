@@ -129,6 +129,48 @@ export function renderAppearance({ refresh }) {
     )
   );
 
+  // ---------- Боковые панели ----------
+  wrap.appendChild(
+    section(
+      'Панели',
+      note(
+        'Ширину меню и списка заметок можно менять перетаскиванием разделителей, а скрыть — кнопками в верхней панели. Двойной клик по разделителю сбрасывает ширину.'
+      ),
+      toggleRow(
+        'Показывать меню',
+        'Левая колонка с папками, тегами и навигацией',
+        settings.layout.sidebar !== false,
+        (value) => updateSettings({ layout: { sidebar: value } }).catch(notifyError)
+      ),
+      toggleRow(
+        'Показывать список заметок',
+        'Вторая колонка со списком и поиском',
+        settings.layout.listCollapsed !== true,
+        (value) => updateSettings({ layout: { listCollapsed: !value } }).catch(notifyError)
+      ),
+      rangeRow({
+        label: 'Ширина меню',
+        desc: 'От 176 до 360 px',
+        min: 176,
+        max: 360,
+        step: 2,
+        value: settings.layout.sidebarWidth,
+        suffix: 'px',
+        onChange: (value) => updateSettings({ layout: { sidebarWidth: value } }).catch(notifyError),
+      }),
+      rangeRow({
+        label: 'Ширина списка заметок',
+        desc: 'От 230 до 520 px',
+        min: 230,
+        max: 520,
+        step: 2,
+        value: settings.layout.listWidth,
+        suffix: 'px',
+        onChange: (value) => updateSettings({ layout: { listWidth: value } }).catch(notifyError),
+      })
+    )
+  );
+
   // ---------- Свой CSS ----------
   const cssArea = h('textarea', {
     class: 'textarea',

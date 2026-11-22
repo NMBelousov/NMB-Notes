@@ -18,8 +18,10 @@ const DEFAULT_SETTINGS = {
   },
   layout: {
     sidebar: true,
+    sidebarWidth: 224,
     listWidth: 292,
     previewWidth: 390,
+    listCollapsed: false,
     rightTab: 'preview',
   },
   editor: {
@@ -120,8 +122,10 @@ function sanitizeSettings(raw) {
     },
     layout: {
       sidebar: layout.sidebar !== false,
+      sidebarWidth: clamp(layout.sidebarWidth, 176, 360, 224),
       listWidth: clamp(layout.listWidth, 230, 520, 292),
       previewWidth: clamp(layout.previewWidth, 280, 760, 390),
+      listCollapsed: layout.listCollapsed === true,
       rightTab: ['preview', 'widgets'].includes(layout.rightTab)
         ? layout.rightTab
         : 'preview',

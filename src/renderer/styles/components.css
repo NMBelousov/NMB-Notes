@@ -248,23 +248,38 @@
 .preview-pane ul,
 .preview-pane ol {
   margin: 0 0 11px;
-  padding-left: 23px;
+  padding-left: 24px;
 }
 
 .preview-pane li {
   margin-bottom: 4px;
 }
 
+.preview-pane li > ul,
+.preview-pane li > ol {
+  margin: 4px 0 2px;
+}
+
 .preview-pane li::marker {
   color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
 }
 
 .preview-pane li.task-item {
   list-style: none;
-  margin-left: -21px;
-  display: flex;
-  align-items: flex-start;
-  gap: 7px;
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr);
+  column-gap: 7px;
+}
+
+.preview-pane li.task-item > span {
+  min-width: 0;
+}
+
+.preview-pane li.task-item > ul,
+.preview-pane li.task-item > ol {
+  grid-column: 2;
+  margin: 4px 0 2px;
 }
 
 .preview-pane input.task-checkbox {

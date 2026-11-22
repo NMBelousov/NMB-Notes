@@ -409,51 +409,22 @@ html.reduce-motion *::after {
 }
 
 .boot-logo {
-  display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  height: 40px;
+  width: 172px;
+  height: auto;
   margin-bottom: 14px;
+  animation: boot-logo-pulse 1.8s ease-in-out infinite;
+  filter: drop-shadow(0 10px 28px color-mix(in srgb, #1f5fbf 30%, transparent));
 }
 
-.boot-logo span {
-  display: block;
-  width: 9px;
-  border-radius: 3px;
-  background: var(--accent);
-  animation: boot-bars 1.1s ease-in-out infinite;
-}
-
-.boot-logo span:nth-child(1) {
-  height: 22px;
-  animation-delay: 0ms;
-}
-
-.boot-logo span:nth-child(2) {
-  height: 38px;
-  animation-delay: 110ms;
-  opacity: 0.85;
-}
-
-.boot-logo span:nth-child(3) {
-  height: 30px;
-  animation-delay: 220ms;
-  opacity: 0.7;
-}
-
-.boot-logo span:nth-child(4) {
-  height: 16px;
-  animation-delay: 330ms;
-  opacity: 0.55;
-}
-
-@keyframes boot-bars {
+@keyframes boot-logo-pulse {
   0%,
   100% {
-    transform: scaleY(0.65);
+    transform: scale(0.96);
+    opacity: 0.86;
   }
   50% {
-    transform: scaleY(1);
+    transform: scale(1);
+    opacity: 1;
   }
 }
 
